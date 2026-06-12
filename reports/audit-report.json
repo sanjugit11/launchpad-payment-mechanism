@@ -1,0 +1,162 @@
+[
+  {
+    "id": "SEC-FL-1",
+    "file": "SXEP.sol",
+    "line": 39,
+    "vulnerabilityType": "Flash Loan / Price Manipulation",
+    "description": "Exchange/trade execution lacks slippage (minAmountOut) protection, leaving it open to sandwich attacks.",
+    "riskLevel": "MEDIUM",
+    "codeSnippet": "function executeTrade(",
+    "recommendedFix": "Include a minAmountOut slippage parameter and enforce it during settlement."
+  },
+  {
+    "id": "SEC-RE-2",
+    "file": "SXGovernance.sol",
+    "line": 100,
+    "vulnerabilityType": "Reentrancy",
+    "description": "Low-level call sends ether/tokens without a nonReentrant guard modifier on the function.",
+    "riskLevel": "HIGH",
+    "codeSnippet": "(bool success, bytes memory result) = proposal.target.call{value: proposal.value}(proposal.data);",
+    "recommendedFix": "Apply the nonReentrant modifier to prevent reentrancy attacks."
+  },
+  {
+    "id": "SEC-TS-3",
+    "file": "SXLaunchpad.sol",
+    "line": 130,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "require(block.timestamp >= project.saleStart && block.timestamp <= project.saleEnd, \"SXLaunchpad: Sale not active\");",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-4",
+    "file": "SXLaunchpad.sol",
+    "line": 172,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "require(block.timestamp >= project.buybackStart && block.timestamp <= project.buybackEnd, \"SXLaunchpad: Buyback window closed\");",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-5",
+    "file": "SXLaunchpad.sol",
+    "line": 205,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "if (block.timestamp < project.saleEnd + project.lockPeriod) {",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-6",
+    "file": "SXUA.sol",
+    "line": 101,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "lastRewardTimestamp: block.timestamp",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-7",
+    "file": "SXUA.sol",
+    "line": 139,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "if (block.timestamp <= pool.lastRewardTimestamp) {",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-8",
+    "file": "SXUA.sol",
+    "line": 143,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "pool.lastRewardTimestamp = block.timestamp;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-9",
+    "file": "SXUA.sol",
+    "line": 149,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "uint256 timeElapsed = block.timestamp - pool.lastRewardTimestamp;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-10",
+    "file": "SXUA.sol",
+    "line": 154,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "pool.lastRewardTimestamp = block.timestamp;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-11",
+    "file": "SXUA.sol",
+    "line": 161,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "lastRewardTimestamp[user][token] = block.timestamp;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-12",
+    "file": "SXUA.sol",
+    "line": 164,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "uint256 timeElapsed = block.timestamp - lastTs;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-13",
+    "file": "SXUA.sol",
+    "line": 229,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "commitTimestamps[msg.sender][token] = block.timestamp;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-14",
+    "file": "SXUA.sol",
+    "line": 260,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "if (block.timestamp < commitTimestamps[msg.sender][token] + lockPeriod) {",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-15",
+    "file": "SXUA.sol",
+    "line": 348,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "if (block.timestamp > pool.lastRewardTimestamp && pool.totalCommitted > 0) {",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  },
+  {
+    "id": "SEC-TS-16",
+    "file": "SXUA.sol",
+    "line": 349,
+    "vulnerabilityType": "Timestamp Dependence",
+    "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
+    "riskLevel": "LOW",
+    "codeSnippet": "uint256 timeElapsed = block.timestamp - pool.lastRewardTimestamp;",
+    "recommendedFix": "Verify that contract logic does not require second-precise accuracy. Use block.number where applicable."
+  }
+]
