@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { useAccount, useBalance, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
-import { formatUnits, parseUnits, type Address, type PublicClient } from 'viem'
+import { formatUnits, parseUnits, type Address } from 'viem'
 import { ERC20_ABI, SXUA_ABI } from '@/lib/abi'
 
 const HOODI_CHAIN_ID = 560048
-const HOODI_GAS_LIMIT = 15_000_000n // Hoodi gas cap is ~16.7M, keep under it
+// Hoodi block gas cap is 16,777,216 — keep safely under it
+const HOODI_GAS_LIMIT = 15_000_000n
 const SXUA_ADDRESS = import.meta.env.VITE_SXUA_ADDRESS as Address | undefined
 const STABLECOIN_ADDRESSES: Record<string, Address | undefined> = {
   USDC: import.meta.env.VITE_USDC_ADDRESS as Address | undefined,
@@ -31,7 +32,7 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
   const { address, isConnected, chainId } = useAccount()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
-  const { writeContractAsync, isPending, error: writeContractError } = useWriteContract()
+  const { writeContractAsync, isPending } = useWriteContract()
 
   const stablecoinAddress = STABLECOIN_ADDRESSES[token]
   const sxuaAddress = SXUA_ADDRESS
@@ -67,12 +68,14 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
   const canDeposit = isConnected && !!stablecoinAddress && hasSxuaAddress && isValidAmount && hasEnoughBalance
   const isLoading = isPending || isSubmitting
 
-  const sendContractCall = async (client: PublicClient, label: string, config: Parameters<typeof writeContractAsync>[0]) => {
+  const sendContractCall = async (label: string, config: Parameters<typeof writeContractAsync>[0]) => {
     setStatus(`${label}...`)
     const hash = await writeContractAsync(config)
     setStatus(`${label} submitted. Waiting for confirmation...`)
     setTxHash(hash)
-    await client.waitForTransactionReceipt({ hash })
+    if (publicClient) {
+      await publicClient.waitForTransactionReceipt({ hash })
+    }
   }
 
   const handleDeposit = async () => {
@@ -117,7 +120,7 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
         await switchChainAsync({ chainId: HOODI_CHAIN_ID })
       }
 
-      await sendContractCall(publicClient, `Approve ${symbol} for SXUA`, {
+      await sendContractCall(`Approve ${symbol} for SXUA`, {
         address: stablecoinAddress,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -125,7 +128,7 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
         gas: HOODI_GAS_LIMIT,
       })
 
-      await sendContractCall(publicClient, `Deposit ${symbol} to SXUA`, {
+      await sendContractCall(`Deposit ${symbol} to SXUA`, {
         address: sxuaAddress,
         abi: SXUA_ABI,
         functionName: 'deposit',
@@ -258,7 +261,6 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
           </button>
           {status && <p className="text-xs text-emerald-400">{status}</p>}
           {error && <p className="text-xs text-red-400">{error}</p>}
-          {writeContractError && <p className="text-xs text-red-400">{writeContractError.message}</p>}
           {txHash && <p className="text-xs text-neutral-500 break-all">Tx: {txHash}</p>}
         </div>
       </div>

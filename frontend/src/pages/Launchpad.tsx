@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useAccount, useBalance, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
-import { formatUnits, parseUnits, type Address, type PublicClient } from 'viem'
+import { formatUnits, parseUnits, type Address } from 'viem'
 import { ERC20_ABI, SXLAUNCHPAD_ABI, SXUA_ABI } from '@/lib/abi'
 
 const HOODI_CHAIN_ID = 560048
-const HOODI_GAS_LIMIT = 15_000_000n // Hoodi gas cap is ~16.7M, keep under it
 const PROJECT_ID = 0
-const SXUA_ADDRESS = '0x1034aad10eF61534EA4Df59cd040b3e4418C5E78' as Address
-const SXLAUNCHPAD_ADDRESS = import.meta.env.VITE_SXLAUNCHPAD_ADDRESS as Address | undefined
-const USDC_ADDRESS = '0x6956CB8346A494eE095Df2358b01Da4445674f2E' as Address
+const SXUA_ADDRESS = (import.meta.env.VITE_SXUA_ADDRESS || '0xe24275b09B7eABf3491B6705D00D108421626429') as Address
+const SXLAUNCHPAD_ADDRESS = (import.meta.env.VITE_SXLAUNCHPAD_ADDRESS || '0xD82AeeA3e5528E11967BBFff54751Acf8129DcF1') as Address
+const USDC_ADDRESS = (import.meta.env.VITE_USDC_ADDRESS || '0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3') as Address
 const DEFAULT_TOKEN_DECIMALS = 18
 const DEFAULT_STABLECOIN_DECIMALS = 6
 const PRICE_DENOMINATOR = 10n ** 18n
@@ -28,6 +27,13 @@ type Project = {
   active: boolean
 }
 
+type Allocation = {
+  tokenAllocation: bigint
+  stablecoinPaid: bigint
+  claimed: boolean
+  refunded: boolean
+}
+
 function formatAmount(value: bigint, decimals: number) {
   return Number(formatUnits(value, decimals)).toLocaleString(undefined, {
     maximumFractionDigits: 6,
@@ -44,6 +50,7 @@ function formatDate(timestamp: bigint) {
 
 export default function Launchpad() {
   const [tokenAmount, setTokenAmount] = useState('')
+  const [buybackAmount, setBuybackAmount] = useState('')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [txHash, setTxHash] = useState<Address | null>(null)
@@ -52,7 +59,7 @@ export default function Launchpad() {
   const { address, isConnected, chainId } = useAccount()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
-  const { writeContractAsync, isPending, error: writeContractError } = useWriteContract()
+  const { writeContractAsync, isPending } = useWriteContract()
 
   const launchpadProjectQuery = useReadContract({
     address: SXLAUNCHPAD_ADDRESS,
@@ -123,9 +130,17 @@ export default function Launchpad() {
   const uncommittedBalanceQuery = useReadContract({
     address: sxuaAddress,
     abi: SXUA_ABI,
-    functionName: 'getUncommittedBalance',
+    functionName: 'uncommittedBalances',
     args: address && sxuaAddress && stablecoinAddress ? [address, stablecoinAddress] : undefined,
     query: { enabled: !!address && !!sxuaAddress && !!stablecoinAddress },
+  })
+
+  const allocationQuery = useReadContract({
+    address: SXLAUNCHPAD_ADDRESS,
+    abi: SXLAUNCHPAD_ABI,
+    functionName: 'allocations',
+    args: address ? [BigInt(PROJECT_ID), address] : undefined,
+    query: { enabled: !!address && !!SXLAUNCHPAD_ADDRESS },
   })
 
   const tokenDecimals = tokenDecimalsQuery.data ?? DEFAULT_TOKEN_DECIMALS
@@ -136,23 +151,59 @@ export default function Launchpad() {
   const isValidAmount = Number.isFinite(tokenAmountNumber) && tokenAmountNumber > 0
   const tokenAmountBase = isValidAmount ? parseUnits(tokenAmount, tokenDecimals) : 0n
   const cost = project ? (tokenAmountBase * project.price) / PRICE_DENOMINATOR : 0n
+  const purchaseFee = cost / 100n
+  const totalPayment = cost + purchaseFee
   const currentUncommittedBalance = uncommittedBalanceQuery.data ?? 0n
-  const hasEnoughSxuaBalance = currentUncommittedBalance >= cost
+  const hasEnoughSxuaBalance = currentUncommittedBalance >= totalPayment
   const needsDeposit = !hasEnoughSxuaBalance
   const walletStablecoinBalance = stablecoinBalanceQuery.data?.value ?? 0n
-  const hasEnoughWalletBalance = needsDeposit ? walletStablecoinBalance >= cost : true
+  const hasEnoughWalletBalance = needsDeposit ? walletStablecoinBalance >= totalPayment : true
   const saleActive = project
     ? project.active && BigInt(Math.floor(Date.now() / 1000)) >= project.saleStart && BigInt(Math.floor(Date.now() / 1000)) <= project.saleEnd
     : false
+  const buybackActive = project
+    ? project.finalized && BigInt(Math.floor(Date.now() / 1000)) >= project.buybackStart && BigInt(Math.floor(Date.now() / 1000)) <= project.buybackEnd
+    : false
+  const canRefund = isConnected && !!project && !project.finalized
+  const canUseAllocation = isConnected && !!project
   const canBuy = isConnected && !!chainId && isValidAmount && saleActive && (hasEnoughSxuaBalance || hasEnoughWalletBalance)
   const isLoading = isPending || isSubmitting
 
-  const sendContractCall = async (client: PublicClient, label: string, config: Parameters<typeof writeContractAsync>[0]) => {
+  const allocation = useMemo<Allocation>(() => {
+    const data = allocationQuery.data
+    if (!data) {
+      return { tokenAllocation: 0n, stablecoinPaid: 0n, claimed: false, refunded: false }
+    }
+
+    return {
+      tokenAllocation: data[0],
+      stablecoinPaid: data[1],
+      claimed: data[2],
+      refunded: data[3],
+    }
+  }, [allocationQuery.data])
+
+  const buybackAmountNumber = buybackAmount ? Number(buybackAmount) : 0
+  const isValidBuybackAmount = Number.isFinite(buybackAmountNumber) && buybackAmountNumber > 0
+  const buybackAmountBase = isValidBuybackAmount ? parseUnits(buybackAmount, tokenDecimals) : 0n
+  const hasEnoughAllocationForBuyback = allocation.tokenAllocation >= buybackAmountBase
+  const buybackReturn = project ? (buybackAmountBase * project.buybackPrice) / PRICE_DENOMINATOR : 0n
+  const buybackFee = buybackReturn / 100n
+  const userBuybackReturn = buybackReturn - buybackFee
+  const refundFee = allocation.stablecoinPaid / 100n
+  const userRefund = allocation.stablecoinPaid - refundFee
+
+  const sendContractCall = async (label: string, config: Parameters<typeof writeContractAsync>[0]) => {
     setStatus(`${label}...`)
     const hash = await writeContractAsync(config)
     setStatus(`${label} submitted. Waiting for confirmation...`)
     setTxHash(hash)
-    await client.waitForTransactionReceipt({ hash })
+    if (publicClient) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      if (receipt.status === 'reverted') {
+        throw new Error('Transaction reverted on-chain.')
+      }
+    }
   }
 
   const handleBuyTokens = async () => {
@@ -208,35 +259,121 @@ export default function Launchpad() {
           return
         }
 
-        await sendContractCall(publicClient, `Approve ${stablecoinSymbol} for SXUA`, {
+        await sendContractCall(`Approve ${stablecoinSymbol} for SXUA`, {
           address: stablecoinAddress!,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [sxuaAddress!, cost],
-          gas: HOODI_GAS_LIMIT,
+          args: [sxuaAddress!, totalPayment],
         })
 
-        await sendContractCall(publicClient, `Deposit ${stablecoinSymbol} into SXUA`, {
+        await sendContractCall(`Deposit ${stablecoinSymbol} into SXUA`, {
           address: sxuaAddress,
           abi: SXUA_ABI,
           functionName: 'deposit',
-          args: [stablecoinAddress, cost],
-          gas: HOODI_GAS_LIMIT,
+          args: [stablecoinAddress, totalPayment],
         })
       }
 
-      await sendContractCall(publicClient, 'Buying launchpad tokens', {
+      await sendContractCall('Buying launchpad tokens', {
         address: SXLAUNCHPAD_ADDRESS!,
         abi: SXLAUNCHPAD_ABI,
         functionName: 'buyTokens',
         args: [BigInt(PROJECT_ID), tokenAmountBase],
-        gas: HOODI_GAS_LIMIT,
       })
 
       setStatus('Tokens purchased successfully.')
       setTokenAmount('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed.')
+      uncommittedBalanceQuery.refetch()
+      allocationQuery.refetch()
+    } catch (err: any) {
+      console.error('Buy tokens error:', err)
+      setError(err.shortMessage || (err instanceof Error ? err.message : 'Transaction failed.'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRequestRefund = async () => {
+    if (!canUseAllocation || allocation.stablecoinPaid === 0n) {
+      setError('No refundable allocation found.')
+      return
+    }
+
+    if (!project || project.finalized) {
+      setError('Refunds are only available before project finalization.')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setError('')
+      setStatus('')
+      setTxHash(null)
+
+      if (chainId !== HOODI_CHAIN_ID) {
+        setStatus('Switching MetaMask to Hoodi...')
+        await switchChainAsync({ chainId: HOODI_CHAIN_ID })
+      }
+
+      await sendContractCall('Requesting refund', {
+        address: SXLAUNCHPAD_ADDRESS,
+        abi: SXLAUNCHPAD_ABI,
+        functionName: 'requestRefund',
+        args: [BigInt(PROJECT_ID)],
+      })
+
+      setStatus('Refund submitted. Allocation tokens forfeited to SXMM.')
+      uncommittedBalanceQuery.refetch()
+      allocationQuery.refetch()
+    } catch (err: any) {
+      console.error('Refund error:', err)
+      setError(err.shortMessage || (err instanceof Error ? err.message : 'Refund failed.'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRequestBuyback = async () => {
+    if (!project || !buybackActive) {
+      setError('Buyback is not active.')
+      return
+    }
+
+    if (!isValidBuybackAmount) {
+      setError('Enter a valid buyback token amount.')
+      return
+    }
+
+    if (!hasEnoughAllocationForBuyback) {
+      setError(`Insufficient allocation. Available: ${formatAmount(allocation.tokenAllocation, tokenDecimals)} ${tokenSymbol}.`)
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setError('')
+      setStatus('')
+      setTxHash(null)
+
+      if (chainId !== HOODI_CHAIN_ID) {
+        setStatus('Switching MetaMask to Hoodi...')
+        await switchChainAsync({ chainId: HOODI_CHAIN_ID })
+      }
+
+      await sendContractCall('Requesting buyback', {
+        address: SXLAUNCHPAD_ADDRESS,
+        abi: SXLAUNCHPAD_ABI,
+        functionName: 'requestBuyback',
+        args: [BigInt(PROJECT_ID), buybackAmountBase],
+      })
+
+      setStatus('Buyback submitted. Sold allocation is forfeited to SXMM.')
+      setBuybackAmount('')
+      uncommittedBalanceQuery.refetch()
+      allocationQuery.refetch()
+    } catch (err: any) {
+      console.error('Buyback error:', err)
+      setError(err.shortMessage || (err instanceof Error ? err.message : 'Buyback failed.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -244,8 +381,16 @@ export default function Launchpad() {
 
   const priceDisplay = project ? `$${Number(formatUnits(project.price, 18)).toFixed(2)}` : '$0.05'
   const costDisplay = formatAmount(cost, stablecoinDecimals)
+  const purchaseFeeDisplay = formatAmount(purchaseFee, stablecoinDecimals)
+  const totalPaymentDisplay = formatAmount(totalPayment, stablecoinDecimals)
   const uncommittedDisplay = formatAmount(currentUncommittedBalance, stablecoinDecimals)
   const walletBalanceDisplay = formatAmount(walletStablecoinBalance, stablecoinDecimals)
+  const allocationDisplay = formatAmount(allocation.tokenAllocation, tokenDecimals)
+  const stablecoinPaidDisplay = formatAmount(allocation.stablecoinPaid, stablecoinDecimals)
+  const userRefundDisplay = formatAmount(userRefund, stablecoinDecimals)
+  const refundFeeDisplay = formatAmount(refundFee, stablecoinDecimals)
+  const userBuybackReturnDisplay = formatAmount(userBuybackReturn, stablecoinDecimals)
+  const buybackFeeDisplay = formatAmount(buybackFee, stablecoinDecimals)
   const lockDays = project ? Math.max(1, Math.round(Number(project.lockPeriod) / 86400)) : 100
   const buybackPriceDisplay = project ? `$${Number(formatUnits(project.buybackPrice, 18)).toFixed(2)}` : '$1.25'
   const buttonDisabledReason = !isConnected
@@ -255,8 +400,34 @@ export default function Launchpad() {
       : !isValidAmount
         ? 'Enter amount'
         : !hasEnoughSxuaBalance && !hasEnoughWalletBalance
-          ? `Need ${formatAmount(cost - currentUncommittedBalance, stablecoinDecimals)} ${stablecoinSymbol}`
+          ? `Need ${formatAmount(totalPayment > currentUncommittedBalance ? totalPayment - currentUncommittedBalance : 0n, stablecoinDecimals)} ${stablecoinSymbol}`
           : ''
+
+  const projectLoading = launchpadProjectQuery.isLoading
+  const wrongChain = !!chainId && chainId !== HOODI_CHAIN_ID
+  const buybackDisabledReason = !isConnected
+    ? 'Connect wallet'
+    : wrongChain
+      ? 'Switch wallet to Hoodi'
+      : projectLoading
+        ? 'Loading project...'
+        : launchpadProjectQuery.isError
+          ? 'Unable to load project'
+          : !project
+            ? 'Project unavailable'
+            : !buybackActive
+              ? 'Buyback window is closed'
+              : !isValidBuybackAmount
+                ? 'Enter amount'
+                : !hasEnoughAllocationForBuyback
+                  ? 'Insufficient allocation' 
+                  : allocation.claimed
+                    ? 'Allocation already claimed'
+                    : allocation.refunded
+                      ? 'Allocation already refunded'
+                      : ''
+
+  const buybackButtonLabel = isLoading ? 'Processing...' : buybackDisabledReason || 'Buyback'
 
   return (
     <div className="space-y-6">
@@ -310,6 +481,22 @@ export default function Launchpad() {
                     = {costDisplay} {stablecoinSymbol}
                   </div>
                 </div>
+                {isValidAmount && (
+                  <div className="mt-3 bg-neutral-800 border border-neutral-700 rounded-lg p-3 space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-neutral-400">Token cost</span>
+                      <span>{costDisplay} {stablecoinSymbol}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-400">PTF fee (1%)</span>
+                      <span>{purchaseFeeDisplay} {stablecoinSymbol}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-neutral-700 font-semibold">
+                      <span>Total SXUA debit</span>
+                      <span>{totalPaymentDisplay} {stablecoinSymbol}</span>
+                    </div>
+                  </div>
+                )}
                 <button
                   onClick={handleBuyTokens}
                   disabled={!canBuy || isLoading}
@@ -319,7 +506,6 @@ export default function Launchpad() {
                 </button>
                 {status && <p className="text-xs text-emerald-400 mt-2">{status}</p>}
                 {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
-                {writeContractError && <p className="text-xs text-red-400 mt-2">{writeContractError.message}</p>}
                 {txHash && <p className="text-xs text-neutral-500 mt-2">Tx: {txHash}</p>}
               </div>
             </div>
@@ -352,19 +538,73 @@ export default function Launchpad() {
           </div>
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold mb-4">Forfeiture Rules</h2>
-            <div className="space-y-3 text-sm">
+            <h2 className="text-xl font-bold mb-4">Your Allocation</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
               <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
-                <p className="font-semibold text-amber-400">Buyback before vesting</p>
-                <p className="text-neutral-400">User receives buyback value · forfeited tokens go to SXMM/treasury</p>
+                <p className="text-neutral-400">Tokens allocated</p>
+                <p className="font-semibold">{allocationDisplay} {tokenSymbol}</p>
               </div>
               <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
-                <p className="font-semibold text-amber-400">Refund before vesting</p>
-                <p className="text-neutral-400">User receives original stablecoin amount · launchpad tokens are forfeited</p>
+                <p className="text-neutral-400">Stablecoin paid</p>
+                <p className="font-semibold">{stablecoinPaidDisplay} {stablecoinSymbol}</p>
               </div>
+              <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
+                <p className="text-neutral-400">Claimed</p>
+                <p className="font-semibold">{allocation.claimed ? 'Yes' : 'No'}</p>
+              </div>
+              <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
+                <p className="text-neutral-400">Refunded</p>
+                <p className="font-semibold">{allocation.refunded ? 'Yes' : 'No'}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-amber-400">Refund before finalization</p>
+                    <p className="text-neutral-400 text-sm">You receive {userRefundDisplay} {stablecoinSymbol}; {allocationDisplay} {tokenSymbol} goes to SXMM.</p>
+                    <p className="text-xs text-neutral-500 mt-1">PTF fee: {refundFeeDisplay} {stablecoinSymbol}</p>
+                  </div>
+                  <button
+                    onClick={handleRequestRefund}
+                    disabled={!canRefund || allocation.stablecoinPaid === 0n || allocation.claimed || allocation.refunded || isLoading}
+                    className="shrink-0 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-semibold px-3 py-2 rounded-lg text-sm transition"
+                  >
+                    Refund
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
+                <p className="font-semibold text-amber-400 mb-2">Buyback window</p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={buybackAmount}
+                    onChange={(e) => setBuybackAmount(e.target.value)}
+                    placeholder="Token amount"
+                    className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRequestBuyback}
+                    disabled={!!buybackDisabledReason || isLoading}
+                    className="bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-semibold px-3 py-2 rounded-lg text-sm transition"
+                  >
+                    {buybackButtonLabel}
+                  </button>
+                </div>
+                {buybackDisabledReason && !isLoading && (
+                  <p className="text-xs text-neutral-500 mt-2">{buybackDisabledReason}</p>
+                )}
+                <p className="text-neutral-400 text-sm mt-2">You receive {userBuybackReturnDisplay} {stablecoinSymbol}; {buybackAmount || '0'} {tokenSymbol} goes to SXMM.</p>
+                <p className="text-xs text-neutral-500 mt-1">PTF fee: {buybackFeeDisplay} {stablecoinSymbol}</p>
+              </div>
+
               <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
                 <p className="font-semibold text-emerald-400">Exit after vesting</p>
-                <p className="text-neutral-400">User receives full value · no forfeiture</p>
+                <p className="text-neutral-400 text-sm">Claiming after the lock period sends the remaining allocation with no token forfeiture.</p>
               </div>
             </div>
           </div>

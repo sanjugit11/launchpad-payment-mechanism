@@ -184,7 +184,7 @@ contract SXUA is
     function deposit(address token, uint256 amount) external whenNotPaused nonReentrant {
         require(supportedTokens[token], "SXUA: Token not supported");
         require(amount > 0, "SXUA: Deposit amount must be > 0");
-
+        
         accrueDailyYield(msg.sender, token);
         updatePool(token);
 

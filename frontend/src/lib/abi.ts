@@ -43,6 +43,20 @@ export const SXUA_ABI = [
   },
   {
     "inputs": [{ "internalType": "address", "name": "user", "type": "address" }, { "internalType": "address", "name": "token", "type": "address" }],
+    "name": "committedBalances",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "user", "type": "address" }, { "internalType": "address", "name": "token", "type": "address" }],
+    "name": "uncommittedBalances",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "user", "type": "address" }, { "internalType": "address", "name": "token", "type": "address" }],
     "name": "pendingSxpReward",
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
@@ -137,6 +151,18 @@ export const SXLAUNCHPAD_ABI = [
       { "internalType": "uint256", "name": "buybackPrice", "type": "uint256" },
       { "internalType": "bool", "name": "finalized", "type": "bool" },
       { "internalType": "bool", "name": "active", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }, { "internalType": "address", "name": "", "type": "address" }],
+    "name": "allocations",
+    "outputs": [
+      { "internalType": "uint256", "name": "tokenAllocation", "type": "uint256" },
+      { "internalType": "uint256", "name": "stablecoinPaid", "type": "uint256" },
+      { "internalType": "bool", "name": "claimed", "type": "bool" },
+      { "internalType": "bool", "name": "refunded", "type": "bool" }
     ],
     "stateMutability": "view",
     "type": "function"

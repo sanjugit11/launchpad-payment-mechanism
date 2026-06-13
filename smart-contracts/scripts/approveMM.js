@@ -5,7 +5,7 @@ async function main() {
     const [marketMaker] = await ethers.getSigners();
 
     const USDC_ADDRESS = "0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3"; // From your frontend env
-    const SX_BUY_STABLES = "0x03e0cbfFcc6e75a02601a73e61ca2a5BA12c7A24";
+    const SX_BUY_STABLES = "0x1FF4fb43a413B0cCc866675A177FD84c53a3055F";
 
     console.log("Setting up Market Maker:", marketMaker.address);
 

@@ -35,11 +35,36 @@ contract SXBuyStables is Ownable, ReentrancyGuard {
         ethToUsdRate = _newRate;
     }
 
+    function setSXSE(address _sxse) external onlyOwner {
+        sxse = ISXSE(_sxse);
+    }
+
+    function setSXUA(address _sxua) external onlyOwner {
+        sxua = ISXUA(_sxua);
+    }
+
+    function setSxcpTreasury(address _sxcpTreasury) external onlyOwner {
+        sxcpTreasury = _sxcpTreasury;
+    }
+
+    function setSXMM(address _sxmm) external onlyOwner {
+        sxmm = _sxmm;
+    }
+
+    function setPtfReceiver(address _ptfReceiver) external onlyOwner {
+        ptfReceiver = _ptfReceiver;
+    }
+
     function buyStables(address stablecoin) external payable nonReentrant {
         require(address(sxse) == address(0) || sxse.isRegistered(msg.sender), "SXSE: User not registered");
         require(msg.value > 0, "SXBuyStables: Must send ETH");
 
-        uint8 decimals = IERC20Metadata(stablecoin).decimals();
+        uint8 decimals;
+        try IERC20Metadata(stablecoin).decimals() returns (uint8 dec) {
+            decimals = dec;
+        } catch {
+            decimals = 18;
+        }
         
         uint256 grossStables18 = (msg.value * ethToUsdRate) / 1e18;
         uint256 grossStables = grossStables18;
@@ -67,6 +92,9 @@ contract SXBuyStables is Ownable, ReentrancyGuard {
 
         IERC20(stablecoin).safeIncreaseAllowance(address(sxua), userAmount);
         sxua.depositFor(msg.sender, stablecoin, userAmount);
+
+        // Reset allowance to 0 for stablecoins like USDT that require 0 allowance
+        IERC20(stablecoin).approve(address(sxua), 0);
 
         emit StablecoinsBought(msg.sender, stablecoin, msg.value, userAmount);
     }

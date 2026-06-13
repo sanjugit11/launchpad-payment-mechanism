@@ -14,4 +14,4 @@ SXLaunchpad Proxy deployed to: 0xD82AeeA3e5528E11967BBFff54751Acf8129DcF1
 SXEP deployed to: 0x6532C7aA0EB8c784Da82EB2fd54dC52B2c1ad6Da
 
 MarketMaker successfully deployed to: 0x394ff56b69d4f446f48718870CAce7A71f868097
-SXBuyStables successfully deployed to: 0x03e0cbfFcc6e75a02601a73e61ca2a5BA12c7A24
+SXBuyStables successfully deployed to: 0x1FF4fb43a413B0cCc866675A177FD84c53a3055F

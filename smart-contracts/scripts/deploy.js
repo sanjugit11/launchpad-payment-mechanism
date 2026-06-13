@@ -79,10 +79,17 @@ async function main() {
   const SXBuyStables = await ethers.getContractFactory("SXBuyStables");
   const buyStables = await SXBuyStables.deploy(
     ethers.ZeroAddress, // Mock SXSE (Zero address bypasses check for testnet/demo)
-    sxuaProxy.target, treasury, marketMaker.target, treasury
+    sxuaProxy.target, treasury, treasury, treasury
   );
   await buyStables.waitForDeployment();
   console.log("SXBuyStables deployed to:", buyStables.target);
+
+  // Approve the newly deployed SXBuyStables contract to pull USDC from deployer (treasury)
+  const USDC_ADDRESS = "0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3";
+  const usdc = await ethers.getContractAt("IERC20", USDC_ADDRESS, deployer);
+  console.log("Approving SXBuyStables contract on USDC...");
+  await (await usdc.approve(buyStables.target, ethers.MaxUint256)).wait();
+  console.log("Approved successfully!");
 
   // 6. Deploy SXEP Exchange
   const SXEP = await ethers.getContractFactory("SXEP");

@@ -9,7 +9,7 @@ export const config = createConfig({
     walletConnect({ projectId: 'demo' }),
   ],
   transports: {
-    [hoodi.id]: http(),
-    [baseSepolia.id]: http(),
+    [hoodi.id]: http(hoodi.rpcUrls.default.http[0]),
+    [baseSepolia.id]: http(baseSepolia.rpcUrls.default.http[0]),
   },
 })
