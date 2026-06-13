@@ -14,6 +14,18 @@ export const SXUA_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      { "internalType": "address", "name": "token", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "destinationChain", "type": "uint256" },
+      { "internalType": "address", "name": "recipient", "type": "address" }
+    ],
+    "name": "requestCrossChainWithdrawal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [{ "internalType": "address", "name": "token", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }],
     "name": "commit",
     "outputs": [],
@@ -96,10 +108,35 @@ export const SXUA_ABI = [
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "emergencyShutdownActive",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
   }
 ] as const
 
 export const SXLAUNCHPAD_ABI = [
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_tokenAddress", "type": "address" },
+      { "internalType": "address", "name": "_stablecoinAddress", "type": "address" },
+      { "internalType": "uint256", "name": "_price", "type": "uint256" },
+      { "internalType": "uint256", "name": "_saleStart", "type": "uint256" },
+      { "internalType": "uint256", "name": "_saleEnd", "type": "uint256" },
+      { "internalType": "uint256", "name": "_lockPeriod", "type": "uint256" },
+      { "internalType": "uint256", "name": "_penaltyPercent", "type": "uint256" },
+      { "internalType": "uint256", "name": "_buybackStart", "type": "uint256" },
+      { "internalType": "uint256", "name": "_buybackEnd", "type": "uint256" },
+      { "internalType": "uint256", "name": "_buybackPrice", "type": "uint256" }
+    ],
+    "name": "addProject",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
   {
     "inputs": [],
     "name": "sxua",
@@ -137,7 +174,7 @@ export const SXLAUNCHPAD_ABI = [
   },
   {
     "inputs": [{ "internalType": "uint256", "name": "projectId", "type": "uint256" }],
-    "name": "getProject",
+    "name": "projects",
     "outputs": [
       { "internalType": "address", "name": "tokenAddress", "type": "address" },
       { "internalType": "address", "name": "stablecoinAddress", "type": "address" },
@@ -262,6 +299,111 @@ export const ERC20_ABI = [
     "inputs": [],
     "name": "symbol",
     "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const
+
+export const SXGOVERNANCE_ABI = [
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "deviceHash", "type": "bytes32" }],
+    "name": "bindDevice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "admin", "type": "address" },
+      { "internalType": "bytes32", "name": "deviceHash", "type": "bytes32" }
+    ],
+    "name": "verifyDevice",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "uint256", "name": "value", "type": "uint256" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" }
+    ],
+    "name": "propose",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "proposalId", "type": "uint256" },
+      { "internalType": "bytes32", "name": "deviceHash", "type": "bytes32" }
+    ],
+    "name": "approve",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "proposalId", "type": "uint256" }],
+    "name": "execute",
+    "outputs": [{ "internalType": "bytes", "name": "", "type": "bytes" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getProposalCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "isDeviceBound",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "deviceHashes",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "adminA",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "adminB",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "adminC",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "proposals",
+    "outputs": [
+      { "internalType": "address", "name": "target", "type": "address" },
+      { "internalType": "uint256", "name": "value", "type": "uint256" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" },
+      { "internalType": "bool", "name": "approvedA", "type": "bool" },
+      { "internalType": "bool", "name": "approvedB", "type": "bool" },
+      { "internalType": "bool", "name": "approvedC", "type": "bool" },
+      { "internalType": "bool", "name": "executed", "type": "bool" }
+    ],
     "stateMutability": "view",
     "type": "function"
   }

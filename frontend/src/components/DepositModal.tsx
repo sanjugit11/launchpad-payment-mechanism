@@ -3,16 +3,9 @@ import { X } from 'lucide-react'
 import { useAccount, useBalance, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { ERC20_ABI, SXUA_ABI } from '@/lib/abi'
+import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
 
-const HOODI_CHAIN_ID = 560048
-// Hoodi block gas cap is 16,777,216 — keep safely under it
 const HOODI_GAS_LIMIT = 15_000_000n
-const SXUA_ADDRESS = import.meta.env.VITE_SXUA_ADDRESS as Address | undefined
-const STABLECOIN_ADDRESSES: Record<string, Address | undefined> = {
-  USDC: import.meta.env.VITE_USDC_ADDRESS as Address | undefined,
-  USDT: import.meta.env.VITE_USDT_ADDRESS as Address | undefined,
-  DAI: import.meta.env.VITE_DAI_ADDRESS as Address | undefined,
-}
 
 function formatAmount(value: bigint, decimals: number) {
   return Number(formatUnits(value, decimals)).toLocaleString(undefined, {
@@ -34,8 +27,9 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
 
-  const stablecoinAddress = STABLECOIN_ADDRESSES[token]
-  const sxuaAddress = SXUA_ADDRESS
+  const addresses = useContractAddresses()
+  const stablecoinAddress = addresses[token as 'USDC' | 'USDT' | 'DAI']
+  const sxuaAddress = addresses.SXUA
 
   const decimalsQuery = useReadContract({
     address: stablecoinAddress,
@@ -70,7 +64,10 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
 
   const sendContractCall = async (label: string, config: Parameters<typeof writeContractAsync>[0]) => {
     setStatus(`${label}...`)
-    const hash = await writeContractAsync(config)
+    const hash = await writeContractAsync({
+      ...config,
+      gas: config.gas ?? HOODI_GAS_LIMIT,
+    })
     setStatus(`${label} submitted. Waiting for confirmation...`)
     setTxHash(hash)
     if (publicClient) {
@@ -95,7 +92,7 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
     }
 
     if (!sxuaAddress || sxuaAddress === '0x0000000000000000000000000000000000000000') {
-      setError('SXUA address is not configured. Please set VITE_SXUA_ADDRESS in .env.')
+      setError('SXUA address is not configured. Please set VITE_SXUA_BASE_ADDRESS in .env.')
       return
     }
 
@@ -115,9 +112,9 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== HOODI_CHAIN_ID) {
-        setStatus('Switching MetaMask to Hoodi...')
-        await switchChainAsync({ chainId: HOODI_CHAIN_ID })
+      if (chainId !== TARGET_CHAIN_ID) {
+        setStatus('Switching MetaMask to Target Network...')
+        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
       }
 
       await sendContractCall(`Approve ${symbol} for SXUA`, {

@@ -10,7 +10,7 @@ export default function Rewards() {
   const days = [1, 7, 30, 60, 100, 101]
   const yields = days.map((d) => calculateYield(committedBalance, d))
 
-  const grossSxyValue = convertAmount ? parseFloat(convertAmount) * 0.10 : 0
+  const grossSxyValue = convertAmount ? parseFloat(convertAmount) * 0.12 : 0
   const sxepFee = calculateSxepFee(grossSxyValue)
   const netUsdc = grossSxyValue - sxepFee
 
@@ -75,7 +75,7 @@ export default function Rewards() {
 
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
         <h2 className="text-xl font-bold mb-4">SXEP Conversion (SXYT → USDC)</h2>
-        <p className="text-sm text-neutral-400 mb-4">5% fee deducted in SXYT · You receive full USDC amount</p>
+        <p className="text-sm text-neutral-400 mb-4">12% fee deducted in SXYT · You receive full USDC amount</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-neutral-400 mb-2">SXYT Amount</label>
@@ -97,11 +97,11 @@ export default function Rewards() {
         {convertAmount && (
           <div className="mt-4 bg-neutral-950 border border-neutral-800 rounded-lg p-4 text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-neutral-400">Gross Output (1 SXYT = $0.10)</span>
+              <span className="text-neutral-400">Gross Output (1 SXYT = $0.12)</span>
               <span>${grossSxyValue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-amber-400">SXEP Fee (5%)</span>
+              <span className="text-amber-400">SXEP Fee (12%)</span>
               <span className="text-amber-400">-{sxepFee.toFixed(2)} SXYT</span>
             </div>
             <div className="flex justify-between font-semibold pt-2 border-t border-neutral-800">

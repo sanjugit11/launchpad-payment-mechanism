@@ -192,6 +192,11 @@ contract SXUA is
         
         uncommittedBalances[msg.sender][token] += amount;
 
+        // Immediate 1:1 SXP reward on deposit
+        uint256 sxpReward = getAmountIn18Decimals(token, amount);
+        sxpToken.mint(msg.sender, sxpReward);
+        emit SxpRewardClaimed(msg.sender, token, sxpReward);
+
         emit Deposited(msg.sender, token, amount);
     }
 
@@ -206,6 +211,11 @@ contract SXUA is
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         
         uncommittedBalances[user][token] += amount;
+
+        // Immediate 1:1 SXP reward on deposit
+        uint256 sxpReward = getAmountIn18Decimals(token, amount);
+        sxpToken.mint(user, sxpReward);
+        emit SxpRewardClaimed(user, token, sxpReward);
 
         emit Deposited(user, token, amount);
     }

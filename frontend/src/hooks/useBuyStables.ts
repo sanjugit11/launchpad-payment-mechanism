@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserProvider, Contract, parseEther, formatEther } from 'ethers';
-
-const SX_BUY_STABLES_ADDRESS = import.meta.env.VITE_SX_BUY_STABLES_ADDRESS || "0x1FF4fb43a413B0cCc866675A177FD84c53a3055F";
-const USDC_ADDRESS = import.meta.env.VITE_USDC_ADDRESS || "0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3";
+import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains';
 
 const SXBuyStablesABI = [
     "function buyStables(address stablecoin) external payable",
@@ -22,6 +20,9 @@ const SXBuyStablesABI = [
 ];
 
 export function useBuyStables() {
+    const addresses = useContractAddresses();
+    const SX_BUY_STABLES_ADDRESS = addresses.SX_BUY_STABLES;
+    const USDC_ADDRESS = addresses.USDC;
     const [isPending, setIsPending] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -41,6 +42,11 @@ export function useBuyStables() {
             }
 
             const provider = new BrowserProvider((window as any).ethereum);
+            const network = await provider.getNetwork();
+            if (Number(network.chainId) !== TARGET_CHAIN_ID) {
+                throw new Error(`Please switch your wallet network to the correct Testnet (Chain ID: ${TARGET_CHAIN_ID}) to buy stablecoins.`);
+            }
+
             const signer = await provider.getSigner();
             const contract = new Contract(SX_BUY_STABLES_ADDRESS, SXBuyStablesABI, signer);
 

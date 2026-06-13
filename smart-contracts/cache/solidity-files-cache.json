@@ -308,8 +308,8 @@
       ]
     },
     "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol": {
-      "lastModificationDate": 1781329314035,
-      "contentHash": "8140f2929000db8f402b37f61a3c249e",
+      "lastModificationDate": 1781344308015,
+      "contentHash": "8643a7d0c58c2c9107d6e92909ca734b",
       "sourceName": "contracts/SXUA.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -1599,6 +1599,84 @@
       ],
       "artifacts": [
         "ISXSE"
+      ]
+    },
+    "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/BridgeManager.sol": {
+      "lastModificationDate": 1781348015958,
+      "contentHash": "b71c671cf76a5d55845f58819d936d41",
+      "sourceName": "contracts/BridgeManager.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "./interfaces/ISXUA.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "BridgeManager"
+      ]
+    },
+    "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA_Base.sol": {
+      "lastModificationDate": 1781348006836,
+      "contentHash": "6d3a16993ba05aeec3d9fa8b98dcb70f",
+      "sourceName": "contracts/SXUA_Base.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./SXUA.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "SXUA_Base"
       ]
     }
   }

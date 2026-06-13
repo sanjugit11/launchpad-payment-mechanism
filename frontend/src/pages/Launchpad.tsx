@@ -3,11 +3,7 @@ import { useAccount, useBalance, usePublicClient, useReadContract, useSwitchChai
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { ERC20_ABI, SXLAUNCHPAD_ABI, SXUA_ABI } from '@/lib/abi'
 
-const HOODI_CHAIN_ID = 560048
-const PROJECT_ID = 0
-const SXUA_ADDRESS = (import.meta.env.VITE_SXUA_ADDRESS || '0xe24275b09B7eABf3491B6705D00D108421626429') as Address
-const SXLAUNCHPAD_ADDRESS = (import.meta.env.VITE_SXLAUNCHPAD_ADDRESS || '0xD82AeeA3e5528E11967BBFff54751Acf8129DcF1') as Address
-const USDC_ADDRESS = (import.meta.env.VITE_USDC_ADDRESS || '0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3') as Address
+import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
 const DEFAULT_TOKEN_DECIMALS = 18
 const DEFAULT_STABLECOIN_DECIMALS = 6
 const PRICE_DENOMINATOR = 10n ** 18n
@@ -49,6 +45,11 @@ function formatDate(timestamp: bigint) {
 }
 
 export default function Launchpad() {
+  const addresses = useContractAddresses()
+  const SXUA_ADDRESS = addresses.SXUA
+  const SXLAUNCHPAD_ADDRESS = addresses.SXLAUNCHPAD
+  const USDC_ADDRESS = addresses.USDC
+
   const [tokenAmount, setTokenAmount] = useState('')
   const [buybackAmount, setBuybackAmount] = useState('')
   const [status, setStatus] = useState('')
@@ -61,11 +62,22 @@ export default function Launchpad() {
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
 
+  const projectCountQuery = useReadContract({
+    address: SXLAUNCHPAD_ADDRESS,
+    abi: SXLAUNCHPAD_ABI,
+    functionName: 'getProjectCount',
+    query: { enabled: !!SXLAUNCHPAD_ADDRESS && SXLAUNCHPAD_ADDRESS !== '0x0000000000000000000000000000000000000000' },
+  })
+
+  const currentProjectId = projectCountQuery.data && Number(projectCountQuery.data) > 0 
+    ? Number(projectCountQuery.data) - 1 
+    : 0
+
   const launchpadProjectQuery = useReadContract({
     address: SXLAUNCHPAD_ADDRESS,
     abi: SXLAUNCHPAD_ABI,
-    functionName: 'getProject',
-    args: [BigInt(PROJECT_ID)],
+    functionName: 'projects',
+    args: [BigInt(currentProjectId)],
     query: { enabled: !!SXLAUNCHPAD_ADDRESS && SXLAUNCHPAD_ADDRESS !== '0x0000000000000000000000000000000000000000' },
   })
 
@@ -139,7 +151,7 @@ export default function Launchpad() {
     address: SXLAUNCHPAD_ADDRESS,
     abi: SXLAUNCHPAD_ABI,
     functionName: 'allocations',
-    args: address ? [BigInt(PROJECT_ID), address] : undefined,
+    args: address ? [BigInt(currentProjectId), address] : undefined,
     query: { enabled: !!address && !!SXLAUNCHPAD_ADDRESS },
   })
 
@@ -195,7 +207,10 @@ export default function Launchpad() {
 
   const sendContractCall = async (label: string, config: Parameters<typeof writeContractAsync>[0]) => {
     setStatus(`${label}...`)
-    const hash = await writeContractAsync(config)
+    const hash = await writeContractAsync({
+      ...config,
+      gas: config.gas ?? 15000000n, // Safe gas limit for Hoodi testnet
+    })
     setStatus(`${label} submitted. Waiting for confirmation...`)
     setTxHash(hash)
     if (publicClient) {
@@ -248,9 +263,9 @@ export default function Launchpad() {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== HOODI_CHAIN_ID) {
-        setStatus('Switching MetaMask to Hoodi...')
-        await switchChainAsync({ chainId: HOODI_CHAIN_ID })
+      if (chainId !== TARGET_CHAIN_ID) {
+        setStatus('Switching MetaMask to Target Network...')
+        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
       }
 
       if (needsDeposit) {
@@ -278,7 +293,7 @@ export default function Launchpad() {
         address: SXLAUNCHPAD_ADDRESS!,
         abi: SXLAUNCHPAD_ABI,
         functionName: 'buyTokens',
-        args: [BigInt(PROJECT_ID), tokenAmountBase],
+        args: [BigInt(currentProjectId), tokenAmountBase],
       })
 
       setStatus('Tokens purchased successfully.')
@@ -310,16 +325,16 @@ export default function Launchpad() {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== HOODI_CHAIN_ID) {
-        setStatus('Switching MetaMask to Hoodi...')
-        await switchChainAsync({ chainId: HOODI_CHAIN_ID })
+      if (chainId !== TARGET_CHAIN_ID) {
+        setStatus('Switching MetaMask to Target Network...')
+        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
       }
 
       await sendContractCall('Requesting refund', {
         address: SXLAUNCHPAD_ADDRESS,
         abi: SXLAUNCHPAD_ABI,
         functionName: 'requestRefund',
-        args: [BigInt(PROJECT_ID)],
+        args: [BigInt(currentProjectId)],
       })
 
       setStatus('Refund submitted. Allocation tokens forfeited to SXMM.')
@@ -355,16 +370,16 @@ export default function Launchpad() {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== HOODI_CHAIN_ID) {
-        setStatus('Switching MetaMask to Hoodi...')
-        await switchChainAsync({ chainId: HOODI_CHAIN_ID })
+      if (chainId !== TARGET_CHAIN_ID) {
+        setStatus('Switching MetaMask to Target Network...')
+        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
       }
 
       await sendContractCall('Requesting buyback', {
         address: SXLAUNCHPAD_ADDRESS,
         abi: SXLAUNCHPAD_ABI,
         functionName: 'requestBuyback',
-        args: [BigInt(PROJECT_ID), buybackAmountBase],
+        args: [BigInt(currentProjectId), buybackAmountBase],
       })
 
       setStatus('Buyback submitted. Sold allocation is forfeited to SXMM.')
@@ -379,7 +394,7 @@ export default function Launchpad() {
     }
   }
 
-  const priceDisplay = project ? `$${Number(formatUnits(project.price, 18)).toFixed(2)}` : '$0.05'
+  const priceDisplay = project ? `$${Number(formatUnits(project.price, stablecoinDecimals)).toFixed(2)}` : '$0.05'
   const costDisplay = formatAmount(cost, stablecoinDecimals)
   const purchaseFeeDisplay = formatAmount(purchaseFee, stablecoinDecimals)
   const totalPaymentDisplay = formatAmount(totalPayment, stablecoinDecimals)
@@ -392,7 +407,7 @@ export default function Launchpad() {
   const userBuybackReturnDisplay = formatAmount(userBuybackReturn, stablecoinDecimals)
   const buybackFeeDisplay = formatAmount(buybackFee, stablecoinDecimals)
   const lockDays = project ? Math.max(1, Math.round(Number(project.lockPeriod) / 86400)) : 100
-  const buybackPriceDisplay = project ? `$${Number(formatUnits(project.buybackPrice, 18)).toFixed(2)}` : '$1.25'
+  const buybackPriceDisplay = project ? `$${Number(formatUnits(project.buybackPrice, stablecoinDecimals)).toFixed(2)}` : '$1.25'
   const buttonDisabledReason = !isConnected
     ? 'Connect wallet'
     : !saleActive
@@ -404,23 +419,23 @@ export default function Launchpad() {
           : ''
 
   const projectLoading = launchpadProjectQuery.isLoading
-  const wrongChain = !!chainId && chainId !== HOODI_CHAIN_ID
+  const wrongChain = !!chainId && chainId !== TARGET_CHAIN_ID
   const buybackDisabledReason = !isConnected
     ? 'Connect wallet'
     : wrongChain
-      ? 'Switch wallet to Hoodi'
-      : projectLoading
-        ? 'Loading project...'
-        : launchpadProjectQuery.isError
-          ? 'Unable to load project'
-          : !project
-            ? 'Project unavailable'
-            : !buybackActive
-              ? 'Buyback window is closed'
-              : !isValidBuybackAmount
-                ? 'Enter amount'
-                : !hasEnoughAllocationForBuyback
-                  ? 'Insufficient allocation' 
+      ? 'Switch network in wallet'
+      : !isValidBuybackAmount
+        ? 'Enter amount'
+        : !hasEnoughAllocationForBuyback
+          ? 'Insufficient allocation'
+          : projectLoading
+            ? 'Loading project...'
+            : launchpadProjectQuery.isError
+              ? 'Unable to load project'
+              : !project || project.tokenAddress === '0x0000000000000000000000000000000000000000'
+                ? 'Project unavailable'
+                : !buybackActive
+                  ? 'Buyback window is closed'
                   : allocation.claimed
                     ? 'Allocation already claimed'
                     : allocation.refunded
@@ -443,7 +458,7 @@ export default function Launchpad() {
                   <p className="text-sm text-neutral-400">
                     Token: {tokenSymbol} · Stablecoin: {stablecoinSymbol}
                   </p>
-                  {project && <p className="text-xs text-neutral-500 mt-1">Project ID: {PROJECT_ID}</p>}
+                  {project && <p className="text-xs text-neutral-500 mt-1">Project ID: {currentProjectId}</p>}
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${saleActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-neutral-700 text-neutral-300'}`}>
                   {saleActive ? 'Active' : 'Inactive'}
