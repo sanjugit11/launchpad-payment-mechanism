@@ -1,6 +1,6 @@
 # SX Launchpad Security & Compliance Report
 
-This security audit report was automatically generated on 2026-06-12T15:26:35.027Z by the **SX Launchpad AI Audit Engine**.
+This security audit report was automatically generated on 2026-06-13T02:55:40.613Z by the **SX Launchpad AI Audit Engine**.
 
 ## Executive Summary
 
@@ -35,11 +35,11 @@ The SX Launchpad ecosystem relies on a stablecoin-vault payment model and multi-
 
 ### [MEDIUM] Flash Loan / Price Manipulation - SEC-FL-1
 - **File**: [`SXEP.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXEP.sol)
-- **Line**: 39
+- **Line**: 30
 - **Description**: Exchange/trade execution lacks slippage (minAmountOut) protection, leaving it open to sandwich attacks.
 - **Snippet**:
 ```solidity
-function executeTrade(
+function executeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutExpected) external nonReentrant returns (uint256) {
 ```
 - **Recommended Fix**: Include a minAmountOut slippage parameter and enforce it during settlement.
 
@@ -57,7 +57,7 @@ function executeTrade(
 
 ### [LOW] Timestamp Dependence - SEC-TS-3
 - **File**: [`SXLaunchpad.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXLaunchpad.sol)
-- **Line**: 130
+- **Line**: 134
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -68,7 +68,7 @@ require(block.timestamp >= project.saleStart && block.timestamp <= project.saleE
 
 ### [LOW] Timestamp Dependence - SEC-TS-4
 - **File**: [`SXLaunchpad.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXLaunchpad.sol)
-- **Line**: 172
+- **Line**: 190
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -79,7 +79,7 @@ require(block.timestamp >= project.buybackStart && block.timestamp <= project.bu
 
 ### [LOW] Timestamp Dependence - SEC-TS-5
 - **File**: [`SXLaunchpad.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXLaunchpad.sol)
-- **Line**: 205
+- **Line**: 233
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -90,7 +90,7 @@ if (block.timestamp < project.saleEnd + project.lockPeriod) {
 
 ### [LOW] Timestamp Dependence - SEC-TS-6
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 101
+- **Line**: 106
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -101,7 +101,7 @@ lastRewardTimestamp: block.timestamp
 
 ### [LOW] Timestamp Dependence - SEC-TS-7
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 139
+- **Line**: 144
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -112,7 +112,7 @@ if (block.timestamp <= pool.lastRewardTimestamp) {
 
 ### [LOW] Timestamp Dependence - SEC-TS-8
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 143
+- **Line**: 148
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -123,7 +123,7 @@ pool.lastRewardTimestamp = block.timestamp;
 
 ### [LOW] Timestamp Dependence - SEC-TS-9
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 149
+- **Line**: 154
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -134,7 +134,7 @@ uint256 timeElapsed = block.timestamp - pool.lastRewardTimestamp;
 
 ### [LOW] Timestamp Dependence - SEC-TS-10
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 154
+- **Line**: 159
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -145,7 +145,7 @@ pool.lastRewardTimestamp = block.timestamp;
 
 ### [LOW] Timestamp Dependence - SEC-TS-11
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 161
+- **Line**: 166
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -156,7 +156,7 @@ lastRewardTimestamp[user][token] = block.timestamp;
 
 ### [LOW] Timestamp Dependence - SEC-TS-12
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 164
+- **Line**: 169
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -167,7 +167,7 @@ uint256 timeElapsed = block.timestamp - lastTs;
 
 ### [LOW] Timestamp Dependence - SEC-TS-13
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 229
+- **Line**: 255
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -178,7 +178,7 @@ commitTimestamps[msg.sender][token] = block.timestamp;
 
 ### [LOW] Timestamp Dependence - SEC-TS-14
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 260
+- **Line**: 286
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -189,7 +189,7 @@ if (block.timestamp < commitTimestamps[msg.sender][token] + lockPeriod) {
 
 ### [LOW] Timestamp Dependence - SEC-TS-15
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 348
+- **Line**: 375
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity
@@ -200,7 +200,7 @@ if (block.timestamp > pool.lastRewardTimestamp && pool.totalCommitted > 0) {
 
 ### [LOW] Timestamp Dependence - SEC-TS-16
 - **File**: [`SXUA.sol`](file:///home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol)
-- **Line**: 349
+- **Line**: 376
 - **Description**: Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.
 - **Snippet**:
 ```solidity

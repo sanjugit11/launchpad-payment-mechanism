@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS audit_reports (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    findings JSONB,
+    summary TEXT
+);

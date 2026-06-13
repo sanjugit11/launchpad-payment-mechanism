@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { formatCurrency, calculateSxcpFee, calculateSxmmSpread, calculatePtf } from '@/lib/utils'
+import { useAccount, useBalance } from 'wagmi'
+import { useBuyStables } from '../hooks/useBuyStables'
 
 export default function BuyStables() {
   const [sourceToken, setSourceToken] = useState('ETH')
@@ -7,6 +9,9 @@ export default function BuyStables() {
   const [amount, setAmount] = useState('')
 
   const grossAmount = amount ? parseFloat(amount) : 0
+  const { address } = useAccount()
+  const { data: ethBalance } = useBalance({ address })
+  const { buyStables, isPending, isSuccess, error } = useBuyStables()
   const exchangeRate = sourceToken === 'ETH' ? 3500 : 1
   const grossOutput = grossAmount * exchangeRate
 
@@ -15,6 +20,11 @@ export default function BuyStables() {
   const subtotalAfterSxcp = grossOutput - sxcpFee
   const ptf = calculatePtf(subtotalAfterSxcp)
   const netOutput = subtotalAfterSxcp - sxmmFee - ptf
+
+  const handleBuy = () => {
+    if (!amount || isNaN(Number(amount))) return;
+    buyStables(amount);
+  };
 
   return (
     <div className="space-y-6">
@@ -56,7 +66,9 @@ export default function BuyStables() {
                     <option value="SOL">SOL</option>
                   </select>
                 </div>
-                <p className="text-xs text-neutral-500">Balance: 2.5 ETH</p>
+                <p className="text-xs text-neutral-500">
+                  Balance: {address && ethBalance ? Number(ethBalance.formatted).toFixed(4) : '0.0000'} ETH
+                </p>
               </div>
             </div>
 
@@ -79,9 +91,15 @@ export default function BuyStables() {
               </div>
             </div>
 
-            <button className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3.5 rounded-xl transition">
-              Buy {destToken}
+            <button
+              onClick={handleBuy}
+              disabled={isPending || !amount || isNaN(Number(amount))}
+              className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? 'Processing...' : `Buy ${destToken}`}
             </button>
+            {isSuccess && <p className="text-emerald-500 text-sm mt-2 text-center font-medium">Purchase successful! Stables deposited to your SXUA vault.</p>}
+            {error && <p className="text-red-500 text-sm mt-2 text-center font-medium">Transaction failed: {error.message}</p>}
           </div>
         </div>
 

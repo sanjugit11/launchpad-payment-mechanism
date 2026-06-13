@@ -20,8 +20,8 @@ INSERT INTO projects (
     buyback_start, buyback_end, buyback_price, finalized, active
 ) VALUES (
     0, 
-    '0x0000000000000000000000000000000000000000', -- Token not deployed yet (placeholder)
-    '0x5FbDB2315678afecb367f032d93F642f64180aa3', -- USDC (placeholder)
+    '0xCdFA51E2858b476aB754F9A6430972e64a69d6a7', -- SXP
+    '0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3', -- USDC
     2.500000000000000000, 
     CURRENT_TIMESTAMP - INTERVAL '1 day', 
     CURRENT_TIMESTAMP + INTERVAL '5 days', 
@@ -40,8 +40,8 @@ INSERT INTO projects (
     buyback_start, buyback_end, buyback_price, finalized, active
 ) VALUES (
     1, 
-    '0x0000000000000000000000000000000000000000', -- Token not deployed yet
-    '0x5FbDB2315678afecb367f032d93F642f64180aa3', -- USDC
+    '0x7Fe17FBbD291AF0Dc5d632f3FdF611500b3f429D', -- SXCP
+    '0xEC1B5cc25b5Eb1474b6054740f7f6EBaF45C49A3', -- USDC
     1.000000000000000000, 
     CURRENT_TIMESTAMP - INTERVAL '10 days', 
     CURRENT_TIMESTAMP - INTERVAL '5 days', 

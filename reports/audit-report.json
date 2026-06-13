@@ -2,11 +2,11 @@
   {
     "id": "SEC-FL-1",
     "file": "SXEP.sol",
-    "line": 39,
+    "line": 30,
     "vulnerabilityType": "Flash Loan / Price Manipulation",
     "description": "Exchange/trade execution lacks slippage (minAmountOut) protection, leaving it open to sandwich attacks.",
     "riskLevel": "MEDIUM",
-    "codeSnippet": "function executeTrade(",
+    "codeSnippet": "function executeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutExpected) external nonReentrant returns (uint256) {",
     "recommendedFix": "Include a minAmountOut slippage parameter and enforce it during settlement."
   },
   {
@@ -22,7 +22,7 @@
   {
     "id": "SEC-TS-3",
     "file": "SXLaunchpad.sol",
-    "line": 130,
+    "line": 134,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -32,7 +32,7 @@
   {
     "id": "SEC-TS-4",
     "file": "SXLaunchpad.sol",
-    "line": 172,
+    "line": 190,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -42,7 +42,7 @@
   {
     "id": "SEC-TS-5",
     "file": "SXLaunchpad.sol",
-    "line": 205,
+    "line": 233,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -52,7 +52,7 @@
   {
     "id": "SEC-TS-6",
     "file": "SXUA.sol",
-    "line": 101,
+    "line": 106,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -62,7 +62,7 @@
   {
     "id": "SEC-TS-7",
     "file": "SXUA.sol",
-    "line": 139,
+    "line": 144,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -72,7 +72,7 @@
   {
     "id": "SEC-TS-8",
     "file": "SXUA.sol",
-    "line": 143,
+    "line": 148,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -82,7 +82,7 @@
   {
     "id": "SEC-TS-9",
     "file": "SXUA.sol",
-    "line": 149,
+    "line": 154,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -92,7 +92,7 @@
   {
     "id": "SEC-TS-10",
     "file": "SXUA.sol",
-    "line": 154,
+    "line": 159,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -102,7 +102,7 @@
   {
     "id": "SEC-TS-11",
     "file": "SXUA.sol",
-    "line": 161,
+    "line": 166,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -112,7 +112,7 @@
   {
     "id": "SEC-TS-12",
     "file": "SXUA.sol",
-    "line": 164,
+    "line": 169,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -122,7 +122,7 @@
   {
     "id": "SEC-TS-13",
     "file": "SXUA.sol",
-    "line": 229,
+    "line": 255,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -132,7 +132,7 @@
   {
     "id": "SEC-TS-14",
     "file": "SXUA.sol",
-    "line": 260,
+    "line": 286,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -142,7 +142,7 @@
   {
     "id": "SEC-TS-15",
     "file": "SXUA.sol",
-    "line": 348,
+    "line": 375,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
@@ -152,7 +152,7 @@
   {
     "id": "SEC-TS-16",
     "file": "SXUA.sol",
-    "line": 349,
+    "line": 376,
     "vulnerabilityType": "Timestamp Dependence",
     "description": "Uses block.timestamp for logic execution. Miners can manipulate block timestamps by +/- 15 seconds.",
     "riskLevel": "LOW",
