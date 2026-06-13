@@ -53,6 +53,8 @@ contract SXUA is
     uint256 public lockPeriod;      // e.g. 30 days
     bool public emergencyShutdownActive;
 
+    address public ptfReceiver;
+
     event TokenSupported(address indexed token, bool supported);
     event Deposited(address indexed user, address indexed token, uint256 amount);
     event Withdrawn(address indexed user, address indexed token, uint256 amount);
@@ -74,17 +76,20 @@ contract SXUA is
         address _sxpToken, 
         address _treasury,
         uint256 _penaltyPercent,
-        uint256 _lockPeriod
+        uint256 _lockPeriod,
+        address _ptfReceiver
     ) public initializer {
         __Ownable_init(msg.sender);
         __Pausable_init();
 
         require(_sxpToken != address(0), "SXUA: Invalid SXP token");
         require(_treasury != address(0), "SXUA: Invalid treasury");
+        require(_ptfReceiver != address(0), "SXUA: Invalid PTF receiver");
         sxpToken = SXP(_sxpToken);
         treasury = _treasury;
         penaltyPercent = _penaltyPercent;
         lockPeriod = _lockPeriod;
+        ptfReceiver = _ptfReceiver;
         emergencyShutdownActive = false;
     }
 
@@ -190,6 +195,21 @@ contract SXUA is
         emit Deposited(msg.sender, token, amount);
     }
 
+    // Deposit Stablecoin on behalf of a user
+    function depositFor(address user, address token, uint256 amount) external whenNotPaused nonReentrant {
+        require(supportedTokens[token], "SXUA: Token not supported");
+        require(amount > 0, "SXUA: Deposit amount must be > 0");
+
+        accrueDailyYield(user, token);
+        updatePool(token);
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        
+        uncommittedBalances[user][token] += amount;
+
+        emit Deposited(user, token, amount);
+    }
+
     // Withdraw Stablecoin
     function withdraw(address token, uint256 amount) external whenNotPaused nonReentrant {
         require(amount > 0, "SXUA: Withdrawal amount must be > 0");
@@ -199,7 +219,13 @@ contract SXUA is
         
         uncommittedBalances[msg.sender][token] -= amount;
         
-        IERC20(token).safeTransfer(msg.sender, amount);
+        uint256 wFee = (amount * 6) / 100;
+        uint256 ptfFee = (amount * 1) / 100;
+        uint256 userAmount = amount - wFee - ptfFee;
+
+        IERC20(token).safeTransfer(treasury, wFee);
+        IERC20(token).safeTransfer(ptfReceiver, ptfFee);
+        IERC20(token).safeTransfer(msg.sender, userAmount);
 
         emit Withdrawn(msg.sender, token, amount);
     }

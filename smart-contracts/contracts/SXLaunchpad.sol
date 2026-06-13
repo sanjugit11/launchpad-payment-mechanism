@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/ISXUA.sol";
+import "./interfaces/IMarketMaker.sol";
 
 contract SXLaunchpad is 
     Initializable, 
@@ -34,7 +35,8 @@ contract SXLaunchpad is
     }
 
     ISXUA public sxua;
-    address public treasury;
+    address public sxmm;
+    address public ptfReceiver;
 
     Project[] public projects;
 
@@ -59,14 +61,16 @@ contract SXLaunchpad is
         _disableInitializers();
     }
 
-    function initialize(address _sxua, address _treasury) public initializer {
+    function initialize(address _sxua, address _sxmm, address _ptfReceiver) public initializer {
         __Ownable_init(msg.sender);
         __Pausable_init();
 
         require(_sxua != address(0), "SXLaunchpad: Invalid SXUA");
-        require(_treasury != address(0), "SXLaunchpad: Invalid treasury");
+        require(_sxmm != address(0), "SXLaunchpad: Invalid SXMM");
+        require(_ptfReceiver != address(0), "SXLaunchpad: Invalid PTF receiver");
         sxua = ISXUA(_sxua);
-        treasury = _treasury;
+        sxmm = _sxmm;
+        ptfReceiver = _ptfReceiver;
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -117,9 +121,9 @@ contract SXLaunchpad is
         emit ProjectFinalized(projectId);
     }
 
-    function setTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "SXLaunchpad: Invalid treasury");
-        treasury = _treasury;
+    function setSxmm(address _sxmm) external onlyOwner {
+        require(_sxmm != address(0), "SXLaunchpad: Invalid SXMM");
+        sxmm = _sxmm;
     }
 
     // User Purchases
@@ -131,9 +135,12 @@ contract SXLaunchpad is
         require(tokenAmount > 0, "SXLaunchpad: Amount must be > 0");
 
         uint256 cost = (tokenAmount * project.price) / 1e18;
+        uint256 ptfFee = (cost * 1) / 100;
         
         // Execute payment via SXUA
-        sxua.payForLaunchpad(msg.sender, project.stablecoinAddress, cost);
+        sxua.payForLaunchpad(msg.sender, project.stablecoinAddress, cost + ptfFee);
+        
+        IERC20(project.stablecoinAddress).safeTransfer(ptfReceiver, ptfFee);
 
         allocations[projectId][msg.sender].tokenAllocation += tokenAmount;
         allocations[projectId][msg.sender].stablecoinPaid += cost;
@@ -153,13 +160,24 @@ contract SXLaunchpad is
         require(!alloc.refunded, "SXLaunchpad: Already refunded");
 
         uint256 refundAmount = alloc.stablecoinPaid;
+        uint256 forfeitedTokens = alloc.tokenAllocation;
         alloc.tokenAllocation = 0;
         alloc.stablecoinPaid = 0;
         alloc.refunded = true;
 
+        uint256 ptfFee = (refundAmount * 1) / 100;
+        uint256 userRefund = refundAmount - ptfFee;
+
         // Approve and refund back to SXUA vault
-        IERC20(project.stablecoinAddress).approve(address(sxua), refundAmount);
-        sxua.refundToUser(msg.sender, project.stablecoinAddress, refundAmount);
+        IERC20(project.stablecoinAddress).approve(address(sxua), userRefund);
+        sxua.refundToUser(msg.sender, project.stablecoinAddress, userRefund);
+        IERC20(project.stablecoinAddress).safeTransfer(ptfReceiver, ptfFee);
+
+        // Send forfeited tokens to SXMM
+        if (forfeitedTokens > 0) {
+            IERC20(project.tokenAddress).safeIncreaseAllowance(sxmm, forfeitedTokens);
+            IMarketMaker(sxmm).receiveForfeitedValue(project.tokenAddress, forfeitedTokens);
+        }
 
         emit Refunded(projectId, msg.sender, refundAmount);
     }
@@ -180,9 +198,19 @@ contract SXLaunchpad is
         alloc.tokenAllocation -= tokenAmount;
         alloc.stablecoinPaid -= (tokenAmount * project.price) / 1e18;
 
+        uint256 ptfFee = (returnAmount * 1) / 100;
+        uint256 userReturn = returnAmount - ptfFee;
+
         // Transfer stablecoins back to SXUA
-        IERC20(project.stablecoinAddress).approve(address(sxua), returnAmount);
-        sxua.refundToUser(msg.sender, project.stablecoinAddress, returnAmount);
+        IERC20(project.stablecoinAddress).approve(address(sxua), userReturn);
+        sxua.refundToUser(msg.sender, project.stablecoinAddress, userReturn);
+        IERC20(project.stablecoinAddress).safeTransfer(ptfReceiver, ptfFee);
+
+        // Send forfeited tokens to SXMM
+        if (tokenAmount > 0) {
+            IERC20(project.tokenAddress).safeIncreaseAllowance(sxmm, tokenAmount);
+            IMarketMaker(sxmm).receiveForfeitedValue(project.tokenAddress, tokenAmount);
+        }
 
         emit BuybackExecuted(projectId, msg.sender, tokenAmount, returnAmount);
     }
@@ -208,12 +236,20 @@ contract SXLaunchpad is
 
         uint256 userAmount = amountToClaim - penalty;
 
+        // PTF calculation in stablecoin 
+        uint256 ptfFeeStable = (userAmount * project.price) / 1e18 / 100;
+        if (ptfFeeStable > 0) {
+            sxua.payForLaunchpad(msg.sender, project.stablecoinAddress, ptfFeeStable);
+            IERC20(project.stablecoinAddress).safeTransfer(ptfReceiver, ptfFeeStable);
+        }
+
         // Send tokens to user
         IERC20(project.tokenAddress).safeTransfer(msg.sender, userAmount);
 
-        // Send forfeited penalty to treasury
+        // Send forfeited penalty to sxmm
         if (penalty > 0) {
-            IERC20(project.tokenAddress).safeTransfer(treasury, penalty);
+            IERC20(project.tokenAddress).safeIncreaseAllowance(sxmm, penalty);
+            IMarketMaker(sxmm).receiveForfeitedValue(project.tokenAddress, penalty);
         }
 
         emit TokensClaimed(projectId, msg.sender, userAmount, penalty);

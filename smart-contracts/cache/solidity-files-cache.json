@@ -308,8 +308,8 @@
       ]
     },
     "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXUA.sol": {
-      "lastModificationDate": 1781278655990,
-      "contentHash": "2788b723755ff5ba3c08d61f8cdac328",
+      "lastModificationDate": 1781317541965,
+      "contentHash": "b0980e10888591b04ca574142eb02acf",
       "sourceName": "contracts/SXUA.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -1136,8 +1136,8 @@
       ]
     },
     "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXEP.sol": {
-      "lastModificationDate": 1781257118016,
-      "contentHash": "1701dd02e98bf5d0befc84e305751b1e",
+      "lastModificationDate": 1781316362342,
+      "contentHash": "ed20094126775e4779e7de636df1162d",
       "sourceName": "contracts/SXEP.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -1164,6 +1164,7 @@
         }
       },
       "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
         "@openzeppelin/contracts/access/Ownable.sol",
         "@openzeppelin/contracts/utils/ReentrancyGuard.sol"
@@ -1176,8 +1177,8 @@
       ]
     },
     "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXLaunchpad.sol": {
-      "lastModificationDate": 1781257184407,
-      "contentHash": "d533fd306a0e001b50bbce4816ce7102",
+      "lastModificationDate": 1781316976230,
+      "contentHash": "8ecba1c4a0c5a64e00af7ae704ae227a",
       "sourceName": "contracts/SXLaunchpad.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -1210,7 +1211,8 @@
         "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol",
         "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
         "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./interfaces/ISXUA.sol"
+        "./interfaces/ISXUA.sol",
+        "./interfaces/IMarketMaker.sol"
       ],
       "versionPragmas": [
         "^0.8.24"
@@ -1220,8 +1222,8 @@
       ]
     },
     "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/interfaces/ISXUA.sol": {
-      "lastModificationDate": 1781257111869,
-      "contentHash": "1138f9f4902e88639886dad287bc3849",
+      "lastModificationDate": 1781317541550,
+      "contentHash": "20f7d560220a9e44b506f22c9d60ba13",
       "sourceName": "contracts/interfaces/ISXUA.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -1442,6 +1444,161 @@
       ],
       "artifacts": [
         "MockStablecoin"
+      ]
+    },
+    "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/MarketMaker.sol": {
+      "lastModificationDate": 1781315879827,
+      "contentHash": "27508b7ba5db7dafd34e786a363de4bd",
+      "sourceName": "contracts/MarketMaker.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "MarketMaker"
+      ]
+    },
+    "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/interfaces/IMarketMaker.sol": {
+      "lastModificationDate": 1781315879214,
+      "contentHash": "2e1e9014c4dba139f47a27447fe73739",
+      "sourceName": "contracts/interfaces/IMarketMaker.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "IMarketMaker"
+      ]
+    },
+    "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/SXBuyStables.sol": {
+      "lastModificationDate": 1781317542314,
+      "contentHash": "64786eafd0985cc93ead88deae6e1ec9",
+      "sourceName": "contracts/SXBuyStables.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+        "./interfaces/ISXSE.sol",
+        "./interfaces/ISXUA.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "SXBuyStables"
+      ]
+    },
+    "/home/sanjeev/2026/Launchpad/smart-contracts/contracts/interfaces/ISXSE.sol": {
+      "lastModificationDate": 1781315879455,
+      "contentHash": "a311f784e8938545ced5bc0e18f550c7",
+      "sourceName": "contracts/interfaces/ISXSE.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "ISXSE"
       ]
     }
   }
