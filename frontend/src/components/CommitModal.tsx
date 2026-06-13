@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { useAccount, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 import { ERC20_ABI, SXUA_ABI } from '@/lib/abi'
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
+import { useTargetChainId, useContractAddresses } from '@/lib/chains'
 
 const HOODI_GAS_LIMIT = 15_000_000n
 const DEFAULT_TOKEN_DECIMALS = 6
@@ -23,6 +23,7 @@ export default function CommitModal({ onClose }: { onClose: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { address, isConnected, chainId } = useAccount()
+  const targetChainId = useTargetChainId()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
@@ -80,7 +81,7 @@ export default function CommitModal({ onClose }: { onClose: () => void }) {
   const isValidAmount = Number.isFinite(amountNumber) && amountNumber > 0
   const amountBase = isValidAmount ? parseUnits(amount, decimals) : 0n
   const hasEnoughBalance = uncommittedBalance >= amountBase
-  const wrongChain = !!chainId && chainId !== TARGET_CHAIN_ID
+  const wrongChain = !!chainId && chainId !== targetChainId
   const isLoading = isPending || isSubmitting
 
   const sendContractCall = async (label: string, config: Parameters<typeof writeContractAsync>[0]) => {
@@ -136,9 +137,9 @@ export default function CommitModal({ onClose }: { onClose: () => void }) {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       await sendContractCall('Committing funds', {

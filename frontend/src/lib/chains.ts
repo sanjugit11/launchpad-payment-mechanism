@@ -49,7 +49,7 @@ export const hoodiAddresses = {
   USDT: '0xde026A36E80868bfA4Cbf7db0D69992Bc93a963C' as Address,
   DAI: '0xD362A6cfdC525cD279Da2c85c2Cd546EAd31abd9' as Address,
   SX_BUY_STABLES: '0x1FF4fb43a413B0cCc866675A177FD84c53a3055F' as Address,
-  SXGOVERNANCE: '0x944186dbB0c44F69762380c5C430f7D85F8FD4db' as Address,
+  SXGOVERNANCE: '0x0b09b2995541AeeB3028086650659980E15C880d' as Address,
 } as const
 
 export const baseSepoliaAddresses = {
@@ -65,14 +65,28 @@ export const baseSepoliaAddresses = {
   SXGOVERNANCE: '0x0000000000000000000000000000000000000000' as Address,
 } as const
 
+export const SUPPORTED_CHAIN_IDS = [baseSepolia.id, hoodi.id] as const
+export type SupportedChainId = (typeof SUPPORTED_CHAIN_IDS)[number]
+export const DEFAULT_CHAIN_ID = hoodi.id
+
+export function getChainExplorerUrl(chainId: number | undefined) {
+  if (chainId === hoodi.id) return 'https://explorer.hoodi.ethpandaops.io'
+  if (chainId === baseSepolia.id) return 'https://sepolia.basescan.org'
+  return 'https://explorer.hoodi.ethpandaops.io'
+}
+
+export function isSupportedChain(chainId: number | undefined): chainId is SupportedChainId {
+  return chainId === baseSepolia.id || chainId === hoodi.id
+}
+
 export function getContractAddresses(chainId: number | undefined) {
-  if (chainId === 84532) {
+  if (chainId === baseSepolia.id) {
     return baseSepoliaAddresses
   }
-  if (chainId === 560048) {
+  if (chainId === hoodi.id) {
     return hoodiAddresses
   }
-  // Default fallback to environment config
+
   return {
     SXUA: (import.meta.env.VITE_SXUA_ADDRESS || hoodiAddresses.SXUA) as Address,
     SXLAUNCHPAD: (import.meta.env.VITE_SXLAUNCHPAD_ADDRESS || hoodiAddresses.SXLAUNCHPAD) as Address,
@@ -92,4 +106,7 @@ export function useContractAddresses() {
   return getContractAddresses(chainId)
 }
 
-export const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID || 560048)
+export function useTargetChainId() {
+  const { chainId } = useAccount()
+  return isSupportedChain(chainId) ? chainId : DEFAULT_CHAIN_ID
+}

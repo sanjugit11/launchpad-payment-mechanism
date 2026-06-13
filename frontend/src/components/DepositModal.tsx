@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { useAccount, useBalance, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from 'wagmi'
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { ERC20_ABI, SXUA_ABI } from '@/lib/abi'
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
+import { useTargetChainId, useContractAddresses } from '@/lib/chains'
 
 const HOODI_GAS_LIMIT = 15_000_000n
 
@@ -23,6 +23,7 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { address, isConnected, chainId } = useAccount()
+  const targetChainId = useTargetChainId()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
@@ -112,9 +113,9 @@ export default function DepositModal({ onClose }: { onClose: () => void }) {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       await sendContractCall(`Approve ${symbol} for SXUA`, {

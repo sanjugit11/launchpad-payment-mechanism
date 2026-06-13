@@ -4,9 +4,9 @@ async function main() {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying contracts with the account:", deployer.address);
-  // const adminA = "0xF7c106d14b2586676F5995f0f7e2f7Cce4f80fD9";
-  // const adminB = "0x1034aad10eF61534EA4Df59cd040b3e4418C5E78";
-  // const adminC = "0xb459e153eA3794FD7773B3e5522d3b633Ac5BE71";
+  const adminA = "0xF7c106d14b2586676F5995f0f7e2f7Cce4f80fD9";
+  const adminB = "0x1034aad10eF61534EA4Df59cd040b3e4418C5E78";
+  const adminC = "0xb459e153eA3794FD7773B3e5522d3b633Ac5BE71";
   const treasury = "0x1034aad10eF61534EA4Df59cd040b3e4418C5E78";
   // 1. Deploy Mock Stablecoins (useful for testnets)
   // const MockStablecoin = await ethers.getContractFactory("MockStablecoin");
@@ -16,10 +16,10 @@ async function main() {
   // console.log("Mock Stablecoins deployed.",usdc.target, usdt.target, dai.target);
 
   // 2. Deploy Governance
-  // const SXGovernance = await ethers.getContractFactory("SXGovernance");
-  // const governance = await SXGovernance.deploy(adminA, adminB, adminC);
-  // console.log("SXGovernance deployed to:", governance.target);
-
+  const SXGovernance = await ethers.getContractFactory("SXGovernance");
+  const governance = await SXGovernance.deploy(adminA, adminB, adminC);
+  console.log("SXGovernance deployed to:", governance.target);
+   return ;
   // 3. Deploy SXP & SXCP
   console.log("here")
   const SXP = await ethers.getContractFactory("SXP");

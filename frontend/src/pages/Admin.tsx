@@ -2,9 +2,10 @@ import { useEffect, useState, useMemo } from 'react'
 import { Key, Lock, Settings, Activity, ShieldAlert, Cpu, Sparkles, CheckCircle2, AlertTriangle, Play, HelpCircle } from 'lucide-react'
 import { useAccount, usePublicClient, useWriteContract, useSwitchChain, useReadContract } from 'wagmi'
 import { type Address, encodeFunctionData } from 'viem'
-import { SXGOVERNANCE_ABI, SXUA_ABI } from '@/lib/abi'
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
+import { SXGOVERNANCE_ABI, SXUA_ABI, SXCP_ABI } from '@/lib/abi'
+import { getChainExplorerUrl, hoodi, getContractAddresses, useContractAddresses, useTargetChainId } from '@/lib/chains'
 import CreateLaunchpadProject from '../components/CreateLaunchpadProject'
+import DIGSecurityDemo from '../components/DIGSecurityDemo'
 
 const SXUA_EMERGENCY_SHUTDOWN_ABI = [
   {
@@ -18,6 +19,7 @@ const SXUA_EMERGENCY_SHUTDOWN_ABI = [
 
 export default function Admin() {
   const { address, isConnected, chainId } = useAccount()
+  const targetChainId = useTargetChainId()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync } = useWriteContract()
@@ -25,12 +27,16 @@ export default function Admin() {
   const addresses = useContractAddresses()
   const SXGOVERNANCE_ADDRESS = addresses.SXGOVERNANCE
   const SXUA_ADDRESS = addresses.SXUA
+  const SXCP_ADDRESS = addresses.SXCP
+  const chainExplorerUrl = getChainExplorerUrl(chainId)
+  const isGovernanceChain = chainId === hoodi.id
 
   // State
   const [sxcpRate, setSxcpRate] = useState('12')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'standard' | 'v4_3'>('standard')
   
   // Custom Proposal Form State
   const [customTarget, setCustomTarget] = useState('')
@@ -204,6 +210,14 @@ export default function Admin() {
         return "SXUA Emergency Shutdown: DEACTIVATE"
       }
     }
+
+    // Check if target is SXCP and data starts with setFeeRate selector
+    if (target.toLowerCase() === SXCP_ADDRESS?.toLowerCase()) {
+      // setFeeRate selector is 0x69fe0e2d (first 4 bytes of keccak256("setFeeRate(uint256)"))
+      if (data.startsWith('0x69fe0e2d')) {
+        return "SXCP Fee Configuration: Update Fee Rate"
+      }
+    }
     
     return `Proposal to ${target.substring(0, 6)}...${target.substring(target.length - 4)}`
   }
@@ -260,14 +274,14 @@ export default function Admin() {
       // Convert to bytes32 format
       const deviceHash = ("0x" + credentialId.substring(0, 64).padEnd(64, '0')) as `0x${string}`
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       setStatus(`Submitting bindDevice transaction with hash: ${deviceHash.substring(0, 10)}...`)
       const hash = await writeContractAsync({
-        address: SXGOVERNANCE_ADDRESS!,
+        address: SXGOVERNANCE_ADDRESS,
         abi: SXGOVERNANCE_ABI,
         functionName: 'bindDevice',
         args: [deviceHash],
@@ -305,17 +319,17 @@ export default function Admin() {
         args: [activate],
       })
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       setStatus('Submitting proposal to SXGovernance...')
       const hash = await writeContractAsync({
-        address: SXGOVERNANCE_ADDRESS!,
+        address: SXGOVERNANCE_ADDRESS,
         abi: SXGOVERNANCE_ABI,
         functionName: 'propose',
-        args: [SXUA_ADDRESS!, 0n, data],
+        args: [SXUA_ADDRESS, 0n, data],
         gas: 15_000_000n
       })
 
@@ -346,13 +360,13 @@ export default function Admin() {
       setError('')
       setStatus('Submitting custom proposal to SXGovernance...')
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       const hash = await writeContractAsync({
-        address: SXGOVERNANCE_ADDRESS!,
+        address: SXGOVERNANCE_ADDRESS,
         abi: SXGOVERNANCE_ABI,
         functionName: 'propose',
         args: [customTarget as Address, BigInt(customValue), customData as `0x${string}`],
@@ -387,27 +401,40 @@ export default function Admin() {
       return
     }
 
+    if (!SXCP_ADDRESS || SXCP_ADDRESS === '0x0000000000000000000000000000000000000000') {
+      setError('SXCP contract address is not configured.')
+      return
+    }
+
     try {
       setError('')
+      const feeRateValue = BigInt(sxcpRate)
       const desc = `Update SXCP Fee to ${sxcpRate}%`
-      setStatus(`Submitting proposal to update SXCP Fee to ${sxcpRate}%...`)
+      setStatus(`Preparing proposal to update SXCP Fee to ${sxcpRate}%...`)
 
-      if (chainId !== TARGET_CHAIN_ID) {
-        setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+      // Encode the setFeeRate function call
+      const encodedData = encodeFunctionData({
+        abi: SXCP_ABI,
+        functionName: 'setFeeRate',
+        args: [feeRateValue],
+      })
+
+      if (!isGovernanceChain && chainId !== hoodi.id) {
+        setError('Admin governance actions must be performed on Hoodi.')
+        return
       }
 
-      setStatus('Submitting proposal to SXGovernance...')
+      setStatus('Submitting fee change proposal to SXGovernance...')
       const hash = await writeContractAsync({
-        address: SXGOVERNANCE_ADDRESS!,
+        address: SXGOVERNANCE_ADDRESS,
         abi: SXGOVERNANCE_ABI,
         functionName: 'propose',
-        args: [SXGOVERNANCE_ADDRESS!, 0n, '0x'],
+        args: [SXCP_ADDRESS, 0n, encodedData],
         gas: 15_000_000n
       })
 
       setTxHash(hash)
-      setStatus('Fee Change Proposal transaction submitted!')
+      setStatus('Fee Change Proposal transaction submitted to Hoodi!')
 
       // Store description locally
       const tempId = proposals.length
@@ -437,14 +464,14 @@ export default function Admin() {
       setError('')
       setStatus(`Attesting Proposal #${id + 1} using physical device key...`)
 
-      if (chainId !== TARGET_CHAIN_ID) {
-        setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+      if (!isGovernanceChain && chainId !== hoodi.id) {
+        setError('Admin governance actions must be performed on Hoodi.')
+        return
       }
 
       setStatus(`Submitting approval attestation with device hash...`)
       const hash = await writeContractAsync({
-        address: SXGOVERNANCE_ADDRESS!,
+        address: SXGOVERNANCE_ADDRESS,
         abi: SXGOVERNANCE_ABI,
         functionName: 'approve',
         args: [BigInt(id), localDeviceHash as `0x${string}`],
@@ -468,13 +495,13 @@ export default function Admin() {
       setError('')
       setStatus(`Executing Proposal #${id + 1} on-chain...`)
 
-      if (chainId !== TARGET_CHAIN_ID) {
-        setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+      if (!isGovernanceChain && chainId !== hoodi.id) {
+        setError('Admin governance actions must be performed on Hoodi.')
+        return
       }
 
       const hash = await writeContractAsync({
-        address: SXGOVERNANCE_ADDRESS!,
+        address: SXGOVERNANCE_ADDRESS,
         abi: SXGOVERNANCE_ABI,
         functionName: 'execute',
         args: [BigInt(id)],
@@ -512,7 +539,30 @@ export default function Admin() {
         </button>
       </div>
 
-      {/* Connection & Admin Authorization Alert Banner */}
+      <div className="flex gap-2 border-b border-neutral-800 pb-px mb-6">
+        <button
+          onClick={() => setActiveTab('standard')}
+          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+            activeTab === 'standard' ? 'border-amber-500 text-amber-400' : 'border-transparent text-neutral-400 hover:text-white'
+          }`}
+        >
+          Standard Controls
+        </button>
+        <button
+          onClick={() => setActiveTab('v4_3')}
+          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+            activeTab === 'v4_3' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-neutral-400 hover:text-white'
+          }`}
+        >
+          V4.3 DIG & Security Demo
+        </button>
+      </div>
+
+      {activeTab === 'v4_3' ? (
+        <DIGSecurityDemo connectedAdmin={connectedAdmin} refreshAll={refreshAll} localDeviceHash={localDeviceHash} />
+      ) : (
+        <>
+          {/* Connection & Admin Authorization Alert Banner */}
       {!isConnected ? (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
@@ -950,6 +1000,8 @@ export default function Admin() {
 
         <CreateLaunchpadProject />
       </div>
+        </>
+      )}
     </div>
   )
 }

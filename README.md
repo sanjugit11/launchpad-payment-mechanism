@@ -335,6 +335,11 @@ REPORT_GAS=true npx hardhat test
 
 # 5. Run Solidity coverage
 npx hardhat coverage
+
+
+npx hardhat run scripts/verifyHoodi.js --network hoodi
+npx hardhat run scripts/verifyBaseSepolia.js --network baseSepolia
+
 ```
 
 ---

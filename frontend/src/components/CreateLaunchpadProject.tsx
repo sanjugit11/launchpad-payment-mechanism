@@ -3,10 +3,11 @@ import { Rocket } from 'lucide-react'
 import { useWriteContract, useAccount, useReadContract, useSwitchChain } from 'wagmi'
 import { parseUnits, type Address } from 'viem'
 import { SXLAUNCHPAD_ABI, ERC20_ABI } from '@/lib/abi'
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
+import { useTargetChainId, useContractAddresses } from '@/lib/chains'
 
 export default function CreateLaunchpadProject() {
   const { isConnected, chainId } = useAccount()
+  const targetChainId = useTargetChainId()
   const addresses = useContractAddresses()
   const SXLAUNCHPAD_ADDRESS = addresses.SXLAUNCHPAD
 
@@ -57,9 +58,9 @@ export default function CreateLaunchpadProject() {
       setError('')
       setStatus('Prompting wallet...')
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       const startTimestamp = Math.floor(new Date(saleStart).getTime() / 1000)

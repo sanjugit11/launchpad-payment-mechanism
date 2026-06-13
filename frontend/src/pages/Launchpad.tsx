@@ -3,7 +3,7 @@ import { useAccount, useBalance, usePublicClient, useReadContract, useSwitchChai
 import { formatUnits, parseUnits, type Address } from 'viem'
 import { ERC20_ABI, SXLAUNCHPAD_ABI, SXUA_ABI } from '@/lib/abi'
 
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
+import { useTargetChainId, useContractAddresses } from '@/lib/chains'
 const DEFAULT_TOKEN_DECIMALS = 18
 const DEFAULT_STABLECOIN_DECIMALS = 6
 const PRICE_DENOMINATOR = 10n ** 18n
@@ -58,6 +58,7 @@ export default function Launchpad() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { address, isConnected, chainId } = useAccount()
+  const targetChainId = useTargetChainId()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
@@ -263,9 +264,9 @@ export default function Launchpad() {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       if (needsDeposit) {
@@ -325,9 +326,9 @@ export default function Launchpad() {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       await sendContractCall('Requesting refund', {
@@ -370,9 +371,9 @@ export default function Launchpad() {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       await sendContractCall('Requesting buyback', {
@@ -419,7 +420,7 @@ export default function Launchpad() {
           : ''
 
   const projectLoading = launchpadProjectQuery.isLoading
-  const wrongChain = !!chainId && chainId !== TARGET_CHAIN_ID
+  const wrongChain = !!chainId && chainId !== targetChainId
   const buybackDisabledReason = !isConnected
     ? 'Connect wallet'
     : wrongChain

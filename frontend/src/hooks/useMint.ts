@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserProvider, Contract, ethers } from 'ethers';
-import { TARGET_CHAIN_ID } from '@/lib/chains';
+import { isSupportedChain } from '@/lib/chains';
 
 const ERC20_MINT_ABI = [
   "function mint(address to, uint256 amount) external"
@@ -27,8 +27,8 @@ export function useMint() {
 
       const provider = new BrowserProvider((window as any).ethereum);
       const network = await provider.getNetwork();
-      if (Number(network.chainId) !== TARGET_CHAIN_ID) {
-        throw new Error(`Please switch your wallet network to the correct Testnet (Chain ID: ${TARGET_CHAIN_ID}) to mint tokens.`);
+      if (!isSupportedChain(Number(network.chainId))) {
+        throw new Error('Please switch your wallet network to Base Sepolia or Hoodi.');
       }
 
       const signer = await provider.getSigner();

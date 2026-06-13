@@ -4,7 +4,7 @@ import { useAccount, usePublicClient, useReadContract, useSwitchChain, useWriteC
 import { formatUnits } from 'viem'
 import { ERC20_ABI, SXUA_ABI } from '@/lib/abi'
 
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains'
+import { useTargetChainId, useContractAddresses } from '@/lib/chains'
 
 const HOODI_GAS_LIMIT = 15_000_000n
 const DEFAULT_TOKEN_DECIMALS = 6
@@ -23,6 +23,7 @@ export default function WithdrawModal({ onClose }: { onClose: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { address, isConnected, chainId } = useAccount()
+  const targetChainId = useTargetChainId()
   const publicClient = usePublicClient()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync, isPending } = useWriteContract()
@@ -144,9 +145,9 @@ export default function WithdrawModal({ onClose }: { onClose: () => void }) {
       setStatus('')
       setTxHash(null)
 
-      if (chainId !== TARGET_CHAIN_ID) {
+      if (chainId !== targetChainId) {
         setStatus('Switching MetaMask to Target Network...')
-        await switchChainAsync({ chainId: TARGET_CHAIN_ID })
+        await switchChainAsync({ chainId: targetChainId })
       }
 
       let withdrawAmount = uncommittedBalance
@@ -185,7 +186,7 @@ export default function WithdrawModal({ onClose }: { onClose: () => void }) {
 
   const buttonDisabledReason = !isConnected
     ? 'Connect wallet'
-    : chainId !== TARGET_CHAIN_ID
+    : chainId !== targetChainId
       ? 'Switch network in wallet'
       : !sxuaAddress
         ? 'SXUA not configured'

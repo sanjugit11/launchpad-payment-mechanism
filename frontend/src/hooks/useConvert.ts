@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserProvider, Contract, ethers } from 'ethers';
-import { TARGET_CHAIN_ID, useContractAddresses } from '@/lib/chains';
+import { isSupportedChain, useContractAddresses } from '@/lib/chains';
 
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
@@ -38,8 +38,8 @@ export function useConvert() {
 
       const provider = new BrowserProvider((window as any).ethereum);
       const network = await provider.getNetwork();
-      if (Number(network.chainId) !== TARGET_CHAIN_ID) {
-        throw new Error(`Please switch your wallet network to the correct Testnet (Chain ID: ${TARGET_CHAIN_ID}) to convert stablecoins.`);
+      if (!isSupportedChain(Number(network.chainId))) {
+        throw new Error('Please switch your wallet network to Base Sepolia or Hoodi.');
       }
 
       const signer = await provider.getSigner();
